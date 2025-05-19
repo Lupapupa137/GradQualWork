@@ -6,7 +6,6 @@ from openpyxl.styles import Alignment, Font, Border, Side
 from io import BytesIO
 from datetime import datetime
 
-# from backend.supabase_client import insert_order
 from backend.database import insert_order, clean_data
 
 from openpyxl.utils import get_column_letter
@@ -20,10 +19,8 @@ def apply_auto_width_to_all_sheets(wb):
                 default=0,
             )
 
-            # Получаем букву колонки (A, B, C...)
             col_letter = get_column_letter(col_idx)
 
-            # 🔥 Ограничение ширины для столбца B (вторая колонка)
             if col_letter == "B":
                 ws.column_dimensions[col_letter].width = min(max_length + 2, 64)
             elif col_letter == "F":
@@ -31,27 +28,10 @@ def apply_auto_width_to_all_sheets(wb):
             else:
                 ws.column_dimensions[col_letter].width = max_length + 2
 
-        # Настройки страницы
         ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
         ws.page_setup.fitToPage = True
         ws.page_setup.fitToWidth = 1
         ws.page_setup.fitToHeight = 0
-
-
-# def apply_auto_width_to_all_sheets(wb):
-#     for ws in wb.worksheets:
-#         for col_idx, col in enumerate(ws.iter_cols(min_row=4, max_row=ws.max_row), 1):
-#             max_length = max(
-#                 (len(str(cell.value)) for cell in col if cell.value is not None),
-#                 default=0,
-#             )
-#             ws.column_dimensions[get_column_letter(col_idx)].width = max_length + 2
-
-#         # Настройки страницы
-#         ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
-#         ws.page_setup.fitToPage = True
-#         ws.page_setup.fitToWidth = 1
-#         ws.page_setup.fitToHeight = 0
 
 
 def split_by_posts_and_export(
@@ -72,8 +52,8 @@ def split_by_posts_and_export(
     order_and_date = ws_input["B15"].value
 
     parts = order_and_date.split("от")
-    order_info = parts[0].strip()  # "Счет № 9795"
-    order_date_raw = parts[1].strip()  # "28.08.2024"
+    order_info = parts[0].strip() 
+    order_date_raw = parts[1].strip()
     order_date = datetime.strptime(order_date_raw, "%d.%m.%Y").date()
 
     for _, row in df.iterrows():
@@ -85,22 +65,14 @@ def split_by_posts_and_export(
                 break
 
     archive_wb = Workbook()
-    archive_wb.remove(archive_wb.active)  # удаляем дефолтный лист
+    archive_wb.remove(archive_wb.active)
 
-    # # 🔥 Готовим заготовку для БД
-    # order_record = {
-    #     "order_id": order_info,
-    #     "order_date": str(datetime.strptime(order_date, "%d.%m.%Y").date()),
-    #     "total_area": 0,
-    # }
-    # post_counter = 1
-
-    post_areas = {}  # 🔥 сюда будем собирать пост -> площадь
+    post_areas = {}
 
     for post_name in sorted(
         post_groups.keys(), key=lambda name: int(name.split("_")[1])
     ):
-        thin = Side(border_style="thin", color="000000")  # Тонкая чёрная линия
+        thin = Side(border_style="thin", color="000000")
         border = Border(top=thin, left=thin, right=thin, bottom=thin)
         rows = post_groups[post_name]
         result_df = pd.DataFrame(rows)
@@ -149,12 +121,6 @@ def split_by_posts_and_export(
         post_num = int(post_name.split("_")[1])
         post_areas[post_num] = round(total_area, 2)
 
-        # # 🔥 Обновляем БД данные
-        # if post_counter <= 10:  # только area_post_1 ... area_post_10
-        #     order_record[f"area_post_{post_counter}"] = round(total_area, 2)
-        # order_record["total_area"] += total_area
-        # post_counter += 1
-
     apply_auto_width_to_all_sheets(archive_wb)
 
     archive_path = os.path.join(output_folder, f"{order_and_date}.xlsx")
@@ -164,7 +130,6 @@ def split_by_posts_and_export(
     archive_wb.save(output_stream)
     output_stream.seek(0)
 
-    # 🔥 Формируем запись в базу
     order_record = {
         "order_id": order_info,
         "order_date": str(order_date),
@@ -174,13 +139,6 @@ def split_by_posts_and_export(
     for post_num, area in post_areas.items():
         if post_num <= 10:
             order_record[f"area_post_{post_num}"] = area
-
-    # insert_order(clean_data(order_record))
-
-    # # Финальное округление общей площади
-    # order_record["total_area"] = round(order_record["total_area"], 2)
-    # # Сохраняем в БД
-    # insert_order(order_record)
 
     filename = f"{order_and_date}.xlsx"
     print(f"Сохранено: {archive_path}")
