@@ -13,23 +13,6 @@ st.set_page_config(page_title="Парсер заказов Stilpark", layout="wi
 st.sidebar.title("Навигация")
 page = st.sidebar.radio("Выберите страницу:", ("Парсер заказов", "История заказов"))
 
-# if page == "История заказов":
-#     st.title("📊 История загруженных заказов")
-
-#     orders = get_orders()
-
-#     if not orders:
-#         st.info("Пока нет загруженных заказов.")
-#     else:
-#         df_orders = pd.DataFrame(orders)
-#         st.dataframe(df_orders)
-
-#         min_date = df_orders["order_date"].min()
-#         max_date = df_orders["order_date"].max()
-#         st.success(f"Доступные данные: с {min_date} по {max_date}")
-
-#     st.stop()
-
 if page == "История заказов":
     st.title("📊 История загруженных заказов")
 
@@ -83,7 +66,6 @@ custom_posts_file = st.file_uploader(
     "Загрузите файл соответствий постов (.xlsx)", type=["xlsx"], key="posts"
 )
 
-# 👉 Обработка только по кнопке
 if st.button("🚀 Начать обработку"):
     if not uploaded_file:
         st.warning("Пожалуйста, загрузите файл с заказом.")
@@ -130,18 +112,6 @@ if st.button("🚀 Начать обработку"):
                 insert_order(clean_data(order_record))
                 st.success(f"Заказ {order_record['order_id']} успешно записан.")
 
-            # # Считаем общую площадь заказа
-            # total_area = df["S"].sum()  # <- столбец S — суммарная площадь
-
-            # # Формируем словарь данных для базы
-            # order_data = {
-            #     "order_id": internal_number,  # сюда можно вставить номер счёта
-            #     "order_date": str(delivery_date),  # дата заказа
-            #     "total_area": round(total_area, 2),
-            # }
-
-            # insert_order(order_data)
-
             st.success("Файл успешно сгенерирован!")
             for post_name, file in result_files.items():
                 st.download_button(
@@ -149,7 +119,7 @@ if st.button("🚀 Начать обработку"):
                     data=file,
                     file_name=f"{post_name}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=post_name,  # уникальный ключ во избежание конфликта ID
+                    key=post_name,
                 )
         except Exception as e:
             st.error(f"Ошибка: {e}")
